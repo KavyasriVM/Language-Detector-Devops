@@ -1,23 +1,74 @@
 pipeline {
     agent any
+    environment {
+        DOCKER_HUB_REPO = "nakulkrishnan/languagedetection" // Replace with your Docker Hub repo
+        DOCKER_CREDS = '876543210' // Jenkins credential ID
+        TAG = "${env.GIT_COMMIT.substring(0,7)}"
+    }
     stages {
-        stage('Build Docker Image') {
+        stage('Checkout') {
+            steps {
+                checkout scm
+            }
+        }
+
+        stage('Build Image') {
             steps {
                 script {
-                    docker.build('language-detection:latest')
+                    docker.build("${DOCKER_HUB_REPO}:${TAG}")
                 }
             }
         }
-        stage('Run Docker Container') {
+
+        stage('Run Container for Tests') {
             steps {
                 script {
-                    // Stop existing container if running
-                    sh "docker ps -q --filter 'name=language-detection' | xargs -r docker stop"
-                    sh "docker ps -a -q --filter 'name=language-detection' | xargs -r docker rm"
-                    
-                    docker.image('language-detection:latest').run('-d -p 5000:5000 --name language-detection')
+                    sh "docker ps -q --filter 'name=ld-test' | xargs -r docker stop || true"
+                    sh "docker ps -a -q --filter 'name=ld-test' | xargs -r docker rm || true"
+                    sh "docker run -d -p 5000:5000 --name ld-test ${DOCKER_HUB_REPO}:${TAG}"
+                    sleep 10
                 }
             }
+        }
+
+        stage('Run Tests') {
+            steps {
+                script {
+                    docker.image('python:3.11-slim').inside("-v ${env.WORKSPACE}:${env.WORKSPACE}") {
+                        sh "pip install -r requirements.txt || true"
+                        sh "python test_api.py"
+                    }
+                }
+            }
+            post {
+                always {
+                    sh "docker logs ld-test || true"
+                }
+            }
+        }
+
+        stage('Push to Docker Hub') {
+            steps {
+                script {
+                    docker.withRegistry('https://registry.hub.docker.com', "${DOCKER_CREDS}") {
+                        def img = docker.image("${DOCKER_HUB_REPO}:${TAG}")
+                        img.push()
+                        img.push('latest')
+                    }
+                }
+            }
+        }
+    }
+
+    post {
+        always {
+            script {
+                sh "docker stop ld-test || true"
+                sh "docker rm ld-test || true"
+            }
+        }
+        failure {
+            echo "Build or tests failed — check console output and container logs."
         }
     }
 }
