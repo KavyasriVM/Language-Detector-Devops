@@ -34,14 +34,13 @@ pipeline {
         stage('Run Tests') {
             steps {
                 script {
-                    docker.image('python:3.11-slim').inside("-v ${env.WORKSPACE}:${env.WORKSPACE}") {
-                        sh "pip install -r requirements.txt || true"
-                        sh "python test_api.py"
-                    }
+                    // Run the test script against the running container
+                    sh "python test_api.py"
                 }
             }
             post {
                 always {
+                    // Collect logs in case of failure
                     sh "docker logs ld-test || true"
                 }
             }
