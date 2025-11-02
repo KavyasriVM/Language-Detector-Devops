@@ -1,0 +1,32 @@
+# Simple Dockerfile for testing
+FROM python:3.10
+
+# Set working directory
+WORKDIR /app
+
+# Copy requirements first for better caching
+COPY requirements.txt .
+
+# Install Python dependencies
+RUN pip install --no-cache-dir -r requirements.txt
+
+# Copy the application code
+COPY . .
+
+# Create a directory for models
+RUN mkdir -p /app/models
+
+# Expose port for Flask API
+EXPOSE 5000
+
+# Set environment variables
+ENV PYTHONPATH=/app
+ENV FLASK_APP=app.py
+ENV FLASK_ENV=production
+
+# Default command
+CMD ["python", "app.py"]
+
+
+
+

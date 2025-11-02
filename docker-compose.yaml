@@ -1,0 +1,39 @@
+version: '3.8'
+
+services:
+  language-detection:
+    build: .
+    container_name: language-detection-model
+    ports:
+      - "5000:5000"
+    volumes:
+      - ./models:/app/models
+      - ./dataset.csv:/app/dataset.csv
+    environment:
+      - FLASK_ENV=production
+      - PYTHONPATH=/app
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:5000/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 40s
+
+  # Optional: Add a reverse proxy with nginx
+  nginx:
+    image: nginx:alpine
+    container_name: language-detection-nginx
+    ports:
+      - "80:80"
+    volumes:
+      - ./nginx.conf:/etc/nginx/nginx.conf
+    depends_on:
+      - language-detection
+    restart: unless-stopped
+
+
+
+
+
+

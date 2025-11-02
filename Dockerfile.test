@@ -1,0 +1,34 @@
+# Test Dockerfile - minimal setup
+FROM python:3.10-slim
+
+WORKDIR /app
+
+# Install curl for health checks
+RUN apt-get update && apt-get install -y curl && rm -rf /var/lib/apt/lists/*
+
+# Copy simple requirements
+COPY requirements-simple.txt requirements.txt
+
+# Install Python dependencies
+RUN pip install --no-cache-dir -r requirements.txt
+
+# Copy application files
+COPY app.py .
+COPY dataset.csv .
+
+# Create models directory
+RUN mkdir -p /app/models
+
+# Expose port
+EXPOSE 5000
+
+# Set environment
+ENV FLASK_APP=app.py
+ENV FLASK_ENV=production
+
+# Simple test command
+CMD ["python", "-c", "print('✅ Docker container is working!'); import flask; print('✅ Flask is working!'); import pandas; print('✅ Pandas is working!'); print('🚀 Container ready!')"]
+
+
+
+

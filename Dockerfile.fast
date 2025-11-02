@@ -1,0 +1,37 @@
+# Fast Dockerfile - CPU only version
+FROM python:3.10-slim
+
+# Set working directory
+WORKDIR /app
+
+# Install minimal system dependencies
+RUN apt-get update && apt-get install -y \
+    curl \
+    && rm -rf /var/lib/apt/lists/*
+
+# Copy lightweight requirements
+COPY requirements-light.txt requirements.txt
+
+# Install Python dependencies (CPU only - much faster)
+RUN pip install --no-cache-dir -r requirements.txt
+
+# Copy the application code
+COPY . .
+
+# Create a directory for models
+RUN mkdir -p /app/models
+
+# Expose port for Flask API
+EXPOSE 5000
+
+# Set environment variables
+ENV PYTHONPATH=/app
+ENV FLASK_APP=app.py
+ENV FLASK_ENV=production
+
+# Default command
+CMD ["python", "app.py"]
+
+
+
+
